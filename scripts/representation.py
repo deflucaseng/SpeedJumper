@@ -40,6 +40,6 @@ def print_directory_structure(directory, prefix=""):
             print_directory_structure(path, new_prefix)
 
 if __name__ == "__main__":
-    speedjumper_path = Path("speedjumper")
+    speedjumper_path = Path("../speedjumper")
     print(f"Directory structure of 'speedjumper':")
     print_directory_structure(speedjumper_path)

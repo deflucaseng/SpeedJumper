@@ -10,6 +10,7 @@
 #include <vector>
 #include <memory>
 #include <stdexcept>
+#include <iostream>
 
 class Parser {
 	public:
@@ -50,6 +51,7 @@ class Parser {
                     }
                 }
             }
+            std::cout << "Phase 2: Parsing step\n\tStatus ===============> Completed Successfully" << std::endl;
         }
 
 		bool isInteger(const std::string& str) {

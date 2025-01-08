@@ -1,0 +1,8 @@
+x isnow 1
+y isnow 5
+y isnow y times 5
+x isnow x plus 1
+z isnow x isnotequalto 5 
+jumpto 3 if z
+display y
+end

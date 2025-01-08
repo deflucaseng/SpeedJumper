@@ -9,38 +9,10 @@ namespace fs = std::filesystem;
 
 
 void runcompiler(const std::string& srcpath, const std::string& filename, const std::string& writepath){
-    Lexer lexer = Lexer(srcpath);
+    Lexer lexer = Lexer("test/" + srcpath);
     Parser parser = Parser(lexer.getTokens());
     CodeGenerator codegen = CodeGenerator(parser.getnodes(), filename, writepath, parser.gettable());
-
-
-
-
-
-
-
-
-
-
-
-
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

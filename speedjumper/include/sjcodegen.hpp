@@ -13,6 +13,7 @@
 #include <fmt/core.h>
 #include <fmt/format.h>
 #include "sjsymboltable.hpp"
+#include <iostream>
 
 // If you still get errors, you might need these as well
 #include <system_error>
@@ -34,35 +35,39 @@ class CodeGenerator{
 
 
 
-		CodeGenerator(const std::vector<std::unique_ptr<Node>>& nodes, const std::string& filename, const std::string& writepath, const std::unordered_map<std::string, VarType> symboltable);
-		NodeVariant convertToVariant(std::unique_ptr<Node> node){
+		CodeGenerator(std::vector<std::unique_ptr<Node>>& nodes, const std::string& filename, const std::string& writepath, const std::unordered_map<std::string, VarType> symboltable);
+		NodeVariant convertToVariant(std::unique_ptr<Node> node) {
 			switch(node->gettype()) {
-        		case NodeType::DISPLAY:
-            		return std::unique_ptr<DisplayNode>(
-                		static_cast<DisplayNode*>(node.release()));
-        		case NodeType::SIMPLEASSIGN:
-            		return std::unique_ptr<SimpleAssignNode>(
-                		static_cast<SimpleAssignNode*>(node.release()));
-        		case NodeType::EVALUATEDASSIGN:
-            		return std::unique_ptr<EvaluatedAssignNode>(
-                		static_cast<EvaluatedAssignNode*>(node.release()));
-        		case NodeType::JUMP:
-            		return std::unique_ptr<JumpNode>(
-                		static_cast<JumpNode*>(node.release()));
-        		case NodeType::END:
-            		return std::unique_ptr<EndNode>(
-                		static_cast<EndNode*>(node.release()));
-
-        		default:
-            		throw std::runtime_error("Unknown node type");
-    			}
+				case NodeType::DISPLAY:
+					return NodeVariant{
+						std::unique_ptr<DisplayNode>(static_cast<DisplayNode*>(node.release()))
+					};
+				case NodeType::SIMPLEASSIGN:
+					return NodeVariant{
+						std::unique_ptr<SimpleAssignNode>(static_cast<SimpleAssignNode*>(node.release()))
+					};
+				case NodeType::EVALUATEDASSIGN:
+					return NodeVariant{
+						std::unique_ptr<EvaluatedAssignNode>(static_cast<EvaluatedAssignNode*>(node.release()))
+					};
+				case NodeType::JUMP:
+					return NodeVariant{
+						std::unique_ptr<JumpNode>(static_cast<JumpNode*>(node.release()))
+					};
+				case NodeType::END:
+					return NodeVariant{
+						std::unique_ptr<EndNode>(static_cast<EndNode*>(node.release()))
+					};
+				default:
+					throw std::runtime_error("Unknown node type");
+			}
 		}
 		std::string displaygen(const std::unique_ptr<DisplayNode>& node);
 		std::string endgen(const std::unique_ptr<EndNode>& node);
 		std::string evalassigngen(const std::unique_ptr<EvaluatedAssignNode>& node);
 		std::string jumpgen(const std::unique_ptr<JumpNode>& node);
 		std::string simpleassigngen(const std::unique_ptr<SimpleAssignNode>& node);
-		void nodeconverter(const std::unique_ptr<Node>& node, auto& out);
+		void nodeconverter(std::unique_ptr<Node> node, auto& out);
 		void symboltableconverter(const std::unordered_map<std::string, VarType> symboltable, auto& out);
 
 

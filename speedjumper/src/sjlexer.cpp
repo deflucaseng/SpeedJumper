@@ -35,60 +35,72 @@ Lexer::Lexer(const std::string& file_path){
 			token_vec.push_back(build_token(line));
 		}
 	}
+	std::cout << "Phase 1: Lexing step\n\tStatus ===============> Completed Successfully" << std::endl;
+
 }
 
-std::unique_ptr<Token> Lexer::build_token(const std::string& line){
-	std::vector<std::string> chunks = split(line);
+std::unique_ptr<Token> Lexer::build_token(const std::string& line) {
+    std::vector<std::string> chunks = split(line);
+    
+    if(chunks.empty()) {
+        throw std::runtime_error("Empty line after splitting: " + line);
+    }
 
+    // Check for EndToken - requires exactly 1 word
+    if(chunks.size() == 1) {
+        if(chunks[0] == "end") {
+            return std::make_unique<EndToken>();
+        }
+        throw std::runtime_error("Invalid single-word command: " + line);
+    }
 
+    // Check for DisplayToken - requires exactly 2 words
+    if(chunks.size() == 2) {
+        if(chunks[0] == "display") {
+            return std::make_unique<DisplayToken>(chunks[1]);
+        }
+        throw std::runtime_error("Invalid two-word command: " + line);
+    }
 
-/*
-	The structure for building these tokens will follow the pattern below:
-	If the first word is end: check if the length is one, if it is treat it as
-	an endnode
-	If the first word is display: Check if the length is two, if it is then
-	treat it as display
+    // Check for SimpleAssignToken - requires exactly 3 words
+    if(chunks.size() == 3) {
+        if(chunks[1] == "isnow") {
+            return std::make_unique<SimpleAssignToken>(chunks[0], chunks[2]);
+        }
+        throw std::runtime_error("Invalid assignment format (expected 'isnow'): " + line);
+    }
 
-	If the first word is jumpto: check the rest of the structure, then treat it as a 
-	jump node
+    // Check for JumpToken - requires exactly 4 words
+    if(chunks.size() == 4) {
+		//std::cout << chunks[0] << " "<< chunks[1] << " "<< chunks[2] << " "<< chunks[3] << " " << std::endl;
+        if(chunks[0] == "jumpto") {
+            if(chunks[2] != "if") {
+                throw std::runtime_error("Invalid jump format (expected 'to'): " + line);
+            }
+            try {
+                return std::make_unique<JumpToken>(std::stoi(chunks[1]), chunks[3]);
+            } catch(const std::invalid_argument&) {
+                throw std::runtime_error("Invalid jump value (expected number): " + line);
+            }
+        }
+        throw std::runtime_error("Invalid four-word command: " + line);
+    }
 
-	From here we assume we are working with Assignments. 
+    // Check for EvaluatedAssignToken - requires exactly 5 words
+    if(chunks.size() == 5) {
+        if(chunks[1] != "isnow") {
+            throw std::runtime_error("Invalid evaluated assignment (expected 'isnow'): " + line);
+        }
+        if(valid_operations.find(chunks[3]) == valid_operations.end()) {
+            throw std::runtime_error("Invalid operation in assignment: " + line);
+        }
+        return std::make_unique<EvaluatedAssignToken>(
+            chunks[0], 
+            chunks[2], 
+            valid_operations.at(chunks[3]), 
+            chunks[4]
+        );
+    }
 
-	Check if the second string is isnow, then if the length is three. If it is three, then
-	treat it as a simpleassign
-
-	Check if the second string is isnow, the length is five, and the fourth string is in 
-	the set of strings
-*/
-
-	if(chunks[0] == "end" && chunks.size() == 1){
-		return std::make_unique<EndToken>();
-
-	}else if(chunks[0] == "display" && chunks.size() == 2){
-		return std::make_unique<DisplayToken>(chunks[1]);
-
-	}else if(chunks[0] == "jumpto" && chunks.size() == 4){
-		if(chunks[2] != "to"){
-			std::runtime_error("Incorrect Jump Formatting");
-		}
-		return std::make_unique<JumpToken>(std::stoi(chunks[1]), chunks[3]);
-	
-	}else if(chunks.size() == 3){
-		if(chunks[1] != "isnow"){
-			std::runtime_error("Incorrect Simple Assignment Formatting");
-		}
-		return std::make_unique<SimpleAssignToken>(chunks[0], chunks[2]);
-
-	}else if(chunks.size() == 5){
-		if((chunks[1] != "isnow") || (valid_operations.find(chunks[3]) != valid_operations.end())) {
-			std::runtime_error("Incorrect Evaluated Assignment Formatting");
-		}
-		return std::make_unique<SimpleAssignToken>(chunks[0], chunks[2], valid_operations.at(chunks[3]), chunks[4]);
-	}
-
-	std::cout << "Error caused by: " << line << std::endl;
-	std::runtime_error("Unspecified incorrect syntax error");
+    throw std::runtime_error("Invalid syntax (unexpected number of words): " + line);
 }
-
-
-

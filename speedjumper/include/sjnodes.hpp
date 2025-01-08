@@ -30,44 +30,48 @@ class EndNode : public Node{
 };
 
 class DisplayNode : public Node {
+public:
+    enum class DisplayType {
+        BOOLLITERAL,
+        INTLITERAL,
+        BOOLVARIABLE,
+        INTVARIABLE
+    };
 
-	
-	public:
-		enum class DisplayType{
-			BOOLLITERAL,
-			INTLITERAL,
-			BOOLVARIABLE,
-			INTVARIABLE
+    DisplayNode(DisplayType displaytype, const std::string& displayval):
+        Node(NodeType::DISPLAY), 
+        displayval(displayval),  // Now makes a copy
+        type(displaytype)        // Also initialize type!
+    {}
 
-		};
+    const std::string& getdisplayval() const {
+        return displayval;            
+    }
 
-		DisplayNode(DisplayType displaytype, const std::string& displayval):Node(NodeType::DISPLAY), displayval(displayval){}
+    DisplayType getdisplaytype() const {
+        return type;
+    }
 
-		const std::string& getdisplayval() const{
-			return displayval;			
-		}
-
-		DisplayType getdisplaytype() const {
-			return type;
-
-		}
-
-	private:
-		const std::string& displayval;
-		DisplayType type;
+private:
+    std::string displayval;      // Store by value, not reference
+    DisplayType type;
 };
 
 
-class JumpNode : public Node{
-	private:
-		std::string condition;
-		int jump_to;
-	
-	public:
-		JumpNode(int jump_to, const std::string& condition):jump_to(jump_to), condition(condition), Node(NodeType::JUMP){}
+class JumpNode : public Node {
+private:
+    std::string conditiongiven;
+    int jumpto;
 
-		const std::string& getCondition() const {return condition;}
-		int getjump_to() const {return jump_to;}
+public:
+    JumpNode(int jump_to, const std::string& condition)
+        : Node(NodeType::JUMP),          // Base class first
+        conditiongiven(condition),       // First member variable
+        jumpto(jump_to)                  // Second member variable
+    {}
+
+    const std::string& getCondition() const { return conditiongiven; }
+    int getjump_to() const { return jumpto; }
 };
 
 class SimpleAssignNode : public Node{
@@ -75,7 +79,7 @@ class SimpleAssignNode : public Node{
 		std::string var, value;
 
 	public:
-		SimpleAssignNode(const std::string& var, const std::string& value) : var(var), value(value), Node(NodeType::SIMPLEASSIGN){}
+		SimpleAssignNode(const std::string& var, const std::string& value) : Node(NodeType::SIMPLEASSIGN), var(var), value(value){}
 
 		const std::string& getvar() const{
 			return var;
@@ -86,26 +90,26 @@ class SimpleAssignNode : public Node{
 		}
 };
 
-class EvaluatedAssignNode : public Node{
-	private:
-		std::string var, lhs, rhs;
-		Operation operation;
+class EvaluatedAssignNode : public Node {
+private:
+    std::string var;
+    std::string lhs;
+    std::string rhs;
+    Operation operation;
 
-	public:
-		EvaluatedAssignNode(const std::string& var, const std::string& lhs, Operation operation, const std::string& rhs):
-		var(var), lhs(lhs), operation(operation), rhs(rhs), Node(NodeType::EVALUATEDASSIGN){}
+public:
+    EvaluatedAssignNode(const std::string& var, const std::string& lhs, Operation operation, const std::string& rhs)
+        : Node(NodeType::EVALUATEDASSIGN),  // Base class first
+          var(var),                         // Then members in order of declaration
+          lhs(lhs),
+          rhs(rhs),
+          operation(operation)
+    {}
 
-		const std::string getvar() const {return var;}
-		const std::string getlhs() const {return lhs;}
-		const std::string getrhs() const {return rhs;}
-		Operation getop() const {return operation;}
-
-
-
-
-
-
-
+    const std::string& getvar() const { return var; }
+    const std::string& getlhs() const { return lhs; }
+    const std::string& getrhs() const { return rhs; }
+    Operation getop() const { return operation; }
 };
 
 

@@ -1,0 +1,9 @@
+display 1
+x isnow true
+y isnow false
+z isnow x or y
+display z
+display 2
+f isnow true xnor x
+display f
+end

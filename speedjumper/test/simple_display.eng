@@ -1,0 +1,8 @@
+display 1
+display 2
+display 3
+test1 isnow true
+test2 isnow false
+display test1
+display test2
+end

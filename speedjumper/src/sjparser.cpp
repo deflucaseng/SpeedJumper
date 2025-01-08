@@ -40,22 +40,22 @@ std::unique_ptr<EvaluatedAssignNode> Parser::build_evaluatedassignnode(std::uniq
 
 	if((isBool(templhs) || symbol_table.containsbool(templhs)) && 
 	(boolean_operations.find(evaluatedassigntoken->getOperator()) != boolean_operations.end()) &&
-	isBool(temprhs) || symbol_table.containsbool(temprhs)){
+	(isBool(temprhs) || symbol_table.containsbool(temprhs))){
 		symbol_table.update_value(VarType::BOOL, evaluatedassigntoken->getVariable());
 	}
 	// Case 2 of Integer Operation
 
 	else if((isInteger(templhs) || symbol_table.containsint(templhs)) && 
 	(integer_operations.find(evaluatedassigntoken->getOperator()) != integer_operations.end()) &&
-	isInteger(temprhs) || symbol_table.containsint(temprhs)){
+	(isInteger(temprhs) || symbol_table.containsint(temprhs))){
 		symbol_table.update_value(VarType::INT, evaluatedassigntoken->getVariable());
 	}
 
 	// Case 3 of Numeric Comparison 
 
 	else if((isInteger(templhs) || symbol_table.containsint(templhs)) && 
-	(evaluatedassigntoken->getOperator() == Operation::EQUALS || evaluatedassigntoken->getOperator() == Operation::NEQUALS) &&
-	isInteger(temprhs) || symbol_table.containsint(temprhs)){
+	((evaluatedassigntoken->getOperator() == Operation::EQUALS) || (evaluatedassigntoken->getOperator() == Operation::NEQUALS)) &&
+	(isInteger(temprhs) || symbol_table.containsint(temprhs))){
 		symbol_table.update_value(VarType::BOOL, evaluatedassigntoken->getVariable());
 	}else{
 		throw std::runtime_error("Invalid combination of values and operations\n");

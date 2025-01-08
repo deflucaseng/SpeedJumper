@@ -1,12 +1,11 @@
-#include "include/sjcodegen.hpp"
+#include "sjcodegen.hpp"
 
 
-CodeGenerator::CodeGenerator(const std::vector<std::unique_ptr<Node>>& nodes, const std::string& filename, const std::string& writepath, const std::unordered_map<std::string, VarType> symboltable):cgsymboltable(symboltable){
+CodeGenerator::CodeGenerator(std::vector<std::unique_ptr<Node>>& nodes, const std::string& filename, const std::string& writepath, const std::unordered_map<std::string, VarType> symboltable):cgsymboltable(symboltable){
 	try{
-		auto out = fmt::output_file("writepath/" + filename);
+		auto out = fmt::output_file(writepath + "/"+ filename.substr(0, filename.length() - 4) + ".asm");
 
 		//Necessary pre generated steps
-
 		out.print(R"(
 section .data
 	true_msg db 'true', 0xA
@@ -19,10 +18,11 @@ section .text
 	global _start
 
 _start:)");
-
-	for (const std::unique_ptr<Node>& givennode: nodes){
-		nodeconverter(givennode, out);
-	}
+        for (size_t i = 0; i < nodes.size(); ++i) {
+            if (nodes[i]) {
+                nodeconverter(std::move(nodes[i]), out);
+            }
+        }
 		//Necessary post generated steps
 
 
@@ -34,7 +34,7 @@ print_true:
 print_false:
 	mov ecx, false_msg
 	mov edx, false_len
-do_printL
+do_print:
 	mov eax, 4
 	mov ebx, 1
 	int 0x80
@@ -83,7 +83,7 @@ section .bss
 
 	symboltableconverter(cgsymboltable, out);
 
-
+	std::cout << "Phase 3: Code Generation Step\n\tStatus ===============> Completed Successfully" << std::endl;
 
 
 
@@ -102,40 +102,66 @@ void CodeGenerator::symboltableconverter(const std::unordered_map<std::string, V
 	}
 }
 
-void CodeGenerator::nodeconverter(const std::unique_ptr<Node>& node, auto& out){
-	auto variant = convertToVariant(std::move(node));
-	out.print(std::visit(NodeVisitor{*this}, variant));
+void CodeGenerator::nodeconverter(std::unique_ptr<Node> node, auto& out) {
+    if (!node) {
+        throw std::runtime_error("Null node passed to nodeconverter");
+    }
+    auto variant = convertToVariant(std::move(node));
+    out.print("{}", std::visit(NodeVisitor{*this}, variant));
+}
+
+std::string CodeGenerator::displaygen(const std::unique_ptr<DisplayNode>& node) {
+    if (!node) {
+        throw std::runtime_error("Null DisplayNode pointer");
+    }
+
+    std::string displayval = node->getdisplayval();
+    if (displayval.empty()) {
+        throw std::runtime_error("Empty display value");
+    }
+
+
+    // First switch - handle variable types that need brackets
+    switch(node->getdisplaytype()) {
+        case DisplayNode::DisplayType::BOOLVARIABLE:
+        case DisplayNode::DisplayType::INTVARIABLE:
+            displayval = "[" + displayval + "]";
+            break;
+        case DisplayNode::DisplayType::BOOLLITERAL:
+        case DisplayNode::DisplayType::INTLITERAL:
+            break; // No modification needed for literals
+    }
+
+
+
+    // Second switch - generate assembly code
+    switch(node->getdisplaytype()) {
+        case DisplayNode::DisplayType::INTLITERAL:
+        case DisplayNode::DisplayType::INTVARIABLE:
+            return fmt::format(R"(
+                mov eax, {displayval}
+                mov dword [num_to_print], eax
+                jmp start_num_print
+            )", fmt::arg("displayval", displayval));
+
+        case DisplayNode::DisplayType::BOOLLITERAL:
+        case DisplayNode::DisplayType::BOOLVARIABLE:
+            return fmt::format(R"(
+                mov eax, {displayval}
+                cmp eax, 1
+                jne print_false
+                jmp print_true
+            )", fmt::arg("displayval", displayval));
+
+        default:
+            throw std::runtime_error("Incorrect display types");
+    }
+
 }
 
 
-std::string CodeGenerator::displaygen(const std::unique_ptr<DisplayNode>& node){
-	std::string displayval = node->getdisplayval();
-	switch(node->getdisplaytype()){
-		case DisplayNode::DisplayType::BOOLVARIABLE: [[fallthrough]];
-		case DisplayNode::DisplayType::INTVARIABLE:
-			displayval = "[" + displayval + "]";
-	}
 
 
-	switch(node->getdisplaytype()){ 
-		case DisplayNode::DisplayType::INTLITERAL:[[fallthrough]];
-		case DisplayNode::DisplayType::INTVARIABLE:
-			return fmt::format(R"(
-mov eax, {displayval}
-mov dword [num_to_print], eax
-jmp start_num_print			
-)", fmt::arg("displayval", displayval));
-
-		case DisplayNode::DisplayType::BOOLLITERAL:[[fallthrough]];
-		case DisplayNode::DisplayType::BOOLVARIABLE:
-			return fmt::format(R"(
-mov eax, {displayval}
-cmp eax, 1
-jne print_false
-jmp print_true
-)", fmt::arg("displayval", displayval));
-	}
-}
 std::string CodeGenerator::endgen(const std::unique_ptr<EndNode>& node){
 	return R"(
 mov eax, 0x1
@@ -143,32 +169,39 @@ mov ebx, 0
 int 0x80
 )";
 }
-std::string CodeGenerator::evalassigngen(const std::unique_ptr<EvaluatedAssignNode>& node){
-	std::string lhs = node->getlhs();
-	std::string rhs = node->getrhs();
-	if(cgsymboltable.find(lhs) != cgsymboltable.end()){
-		lhs = "["+lhs+"]";
-	}else if(lhs == "true" || lhs == "True"){
-		lhs = "1";
-	}else if(lhs == "false" || lhs == "False"){
-		lhs = "0";
-	}
-	if(cgsymboltable.find(rhs) != cgsymboltable.end()){
-		rhs = "["+rhs+"]";
-	}else if(rhs == "true" || rhs == "True"){
-		rhs = "1";
-	}else if(rhs == "false" || rhs == "False"){
-		rhs = "0";
-	}
+std::string CodeGenerator::evalassigngen(const std::unique_ptr<EvaluatedAssignNode>& node) {
+    std::string lhs = node->getlhs();
+    std::string rhs = node->getrhs();
+    
+    // Handle left-hand side
+    if(cgsymboltable.find(lhs) != cgsymboltable.end()) {
+        lhs = "[" + lhs + "]";
+    } else if(lhs == "true" || lhs == "True") {
+        lhs = "1";
+    } else if(lhs == "false" || lhs == "False") {
+        lhs = "0";
+    }
+    
+    // Handle right-hand side
+    if(cgsymboltable.find(rhs) != cgsymboltable.end()) {
+        rhs = "[" + rhs + "]";
+    } else if(rhs == "true" || rhs == "True") {
+        rhs = "1";
+    } else if(rhs == "false" || rhs == "False") {
+        rhs = "0";
+    }
 
-	return fmt::format(eval_assign[node->getop()], fmt::arg("lhs", lhs), fmt::arg("rhs", rhs), fmt::arg("var", node->getvar()));
-
+    // Use .at() instead of operator[]
+    return fmt::format(fmt::runtime(eval_assign.at(node->getop())), 
+                      fmt::arg("lhs", lhs), 
+                      fmt::arg("rhs", rhs), 
+                      fmt::arg("var", node->getvar()));
 }
 std::string CodeGenerator::jumpgen(const std::unique_ptr<JumpNode>& node){
 	return fmt::format(R"(
 mov eax, [{condition}]
 cmp eax, 1
-jne command {jumploc}
+jne command{jumploc}
 )", fmt::arg("condition", node->getCondition()), fmt::arg("jumploc", std::to_string(node->getjump_to())));
 }
 

@@ -1,0 +1,5 @@
+test1 isnow 1
+test2 isnow 3
+test3 isnow test1 plus test2
+display test3
+end
