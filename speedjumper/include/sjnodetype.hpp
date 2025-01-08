@@ -1,0 +1,16 @@
+#ifndef SJNODETYPE_HPP
+#define SJNODETYPE_HPP
+
+enum class NodeType{
+	DISPLAY,
+	END,
+	SIMPLEASSIGN,
+	EVALUATEDASSIGN,
+	JUMP
+};
+
+
+
+
+
+#endif
